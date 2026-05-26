@@ -39,6 +39,8 @@ The default location is `~/.config/hnl-agent-skills`. To use a different path, c
 ```
 > If you get an error running `notepad $PROFILE`, this means you don't have a PowerShell profile yet. You can create one with `New-Item -Path $PROFILE -ItemType File -Force`
 
+Reload your shell (in Windows PowerShell, just run `. $PROFILE`), done.
+
 **macOS/Linux**
 
 1. Clone the repository
@@ -53,8 +55,7 @@ git clone --recurse-submodules https://github.com/c-kick/hnl-agent-skills.git ~/
 # export AGENT_SKILLS_TARGETS=".claude/skills .codex/skills"
 . "$HOME/.config/hnl-agent-skills/agent-skills.sh"
 ```
-
-Reload your shell (in Windows PowerShell, just run `. $PROFILE`), done.
+Log out of SSH and back in again, and your bashrc should now expose all th ecommands listed below.
 
 ---
 
