@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# agent-skills — bash helpers
+# agent-skills - bash helpers
 # Source this file from ~/.bashrc or ~/.zshrc:
 #   . "$HOME/.config/agent-skills/agent-skills.sh"
 
@@ -11,13 +11,43 @@ CLAUDE_SKILLS="${CLAUDE_SKILLS:-$AGENT_SKILLS}"
 AGENT_SKILLS_TARGETS="${AGENT_SKILLS_TARGETS:-.claude/skills .codex/skills}"
 unset _agent_skills_home
 
-_skill_managed_target() {
-    local target="$1"
+_skill_canonical_path() {
+    if [ -d "$1" ]; then
+        (CDPATH='' cd -P -- "$1" 2>/dev/null && pwd -P)
+        return
+    fi
+    local parent name
+    parent=$(dirname "$1")
+    name=$(basename "$1")
+    parent=$(CDPATH='' cd -P -- "$parent" 2>/dev/null && pwd -P) || return 1
+    if [ "$parent" = "/" ]; then
+        printf '/%s\n' "$name"
+    else
+        printf '%s/%s\n' "$parent" "$name"
+    fi
+}
+
+_skill_link_target() {
+    local target
+    target=$(readlink "$1") || return 1
     case "$target" in
-        "$AGENT_SKILLS"/*|"$AGENT_SKILLS") return 0 ;;
-        "$CLAUDE_SKILLS"/*|"$CLAUDE_SKILLS") return 0 ;;
-        *) return 1 ;;
+        /*) ;;
+        *) target="$(dirname "$1")/$target" ;;
     esac
+    printf '%s\n' "$target"
+}
+
+_skill_managed_target() {
+    local target
+    target=$(_skill_canonical_path "$1") || return 1
+    local root canonical_root
+    for root in "$AGENT_SKILLS" "$CLAUDE_SKILLS"; do
+        canonical_root=$(_skill_canonical_path "$root") || continue
+        case "$target" in
+            "$canonical_root"/*|"$canonical_root") return 0 ;;
+        esac
+    done
+    return 1
 }
 
 _skill_target_dirs() {
@@ -88,7 +118,7 @@ skill-add() {
             if [ -e "$dst" ] || [ -L "$dst" ]; then
                 if [ -L "$dst" ]; then
                     local target
-                    target=$(readlink "$dst")
+                    target=$(_skill_link_target "$dst")
                     if _skill_managed_target "$target"; then
                         echo "ALREADY_INSTALLED: $s ($skills_dir)"
                         continue
@@ -117,13 +147,21 @@ skill-remove() {
         echo "Usage: skill-remove <skill> [skill...]"
         return 1
     fi
+    local skills_dir=""
     for s in "$@"; do
-        local skills_dir
         for skills_dir in $(_skill_target_dirs); do
             local dst="$skills_dir/$s"
-            if [ -e "$dst" ] || [ -L "$dst" ]; then
+            if [ -L "$dst" ]; then
+                local link_target=""
+                link_target=$(_skill_link_target "$dst")
+                if ! _skill_managed_target "$link_target"; then
+                    echo "EXTERNAL: $s ($skills_dir; not managed by agent-skills, skipping)"
+                    continue
+                fi
                 rm -f "$dst"
                 echo "REMOVED: $s ($skills_dir)"
+            elif [ -e "$dst" ]; then
+                echo "EXTERNAL: $s ($skills_dir; not managed by agent-skills, skipping)"
             else
                 echo "NOT FOUND: $s ($skills_dir)"
             fi
@@ -165,7 +203,7 @@ _load_bundles() {
             continue
         fi
 
-        # skill name — append with newline separator
+        # skill name - append with newline separator
         local current_skills
         eval "current_skills=\"\$_BUNDLE_SKILLS_${current}\""
         if [ -n "$current_skills" ]; then
@@ -316,9 +354,10 @@ skill-ls-installed() {
             local name
             name=$(basename "$item")
             if [ -L "$item" ] || [ -L "${item%/}" ]; then
-                local target
+                local target resolved_target
                 target=$(readlink "${item%/}")
-                if _skill_managed_target "$target"; then
+                resolved_target=$(_skill_link_target "${item%/}")
+                if _skill_managed_target "$resolved_target"; then
                     echo "LINKED:   $name -> $target"
                 else
                     echo "EXTERNAL: $name -> $target"

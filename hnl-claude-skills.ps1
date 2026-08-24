@@ -17,11 +17,32 @@ function _skill-target-dirs {
     $env:AGENT_SKILLS_TARGETS -split ';' | Where-Object { $_ }
 }
 
+function _skill-canonical-path {
+    param($path)
+    if (-not $path) { return $null }
+    try {
+        $fullPath = [System.IO.Path]::GetFullPath([string]$path)
+        if (Test-Path -LiteralPath $fullPath) {
+            $fullPath = (Resolve-Path -LiteralPath $fullPath -ErrorAction Stop).ProviderPath
+        }
+        return $fullPath.TrimEnd([char[]]"\/")
+    } catch {
+        return $null
+    }
+}
+
 function _skill-managed-target {
     param($target)
-    if (-not $target) { return $false }
-    $targetText = [string]$target
-    return $targetText.StartsWith($env:AGENT_SKILLS) -or $targetText.StartsWith($env:CLAUDE_SKILLS)
+    $targetText = _skill-canonical-path $target
+    if (-not $targetText) { return $false }
+    foreach ($root in @($env:AGENT_SKILLS, $env:CLAUDE_SKILLS)) {
+        $rootText = _skill-canonical-path $root
+        if (-not $rootText) { continue }
+        if ($targetText -eq $rootText) { return $true }
+        if ($targetText.StartsWith("$rootText\", [StringComparison]::OrdinalIgnoreCase)) { return $true }
+        if ($targetText.StartsWith("$rootText/", [StringComparison]::OrdinalIgnoreCase)) { return $true }
+    }
+    return $false
 }
 
 function _skill-target-label {
@@ -94,8 +115,14 @@ function skill-remove {
         foreach ($skillsDir in (_skill-target-dirs)) {
             $dst = Join-Path $skillsDir $s
             if (Test-Path $dst) {
-                cmd /c rmdir "$dst"
-                Write-Host "REMOVED: $s ($skillsDir)"
+                $item = Get-Item $dst
+                $isManagedJunction = ($item.LinkType -eq "Junction") -and (_skill-managed-target $item.Target)
+                if ($isManagedJunction) {
+                    cmd /c rmdir "$dst"
+                    Write-Host "REMOVED: $s ($skillsDir)"
+                } else {
+                    Write-Host "EXTERNAL: $s ($skillsDir; not managed by agent-skills, skipping)"
+                }
             } else {
                 Write-Host "NOT FOUND: $s ($skillsDir)"
             }
