@@ -1,5 +1,10 @@
 # agent-skills
 ### A centralized, local skill registry for Claude Code and Codex.
+---
+### What is it? Watch the explainer below.
+
+<video src="https://github.com/user-attachments/assets/f5441168-77af-443e-ba3e-2a95e8563936" width="100%" controls></video>
+This fun little explainer video was made by the `explainer-animation` skill, using Claude Opus 5.5
 
 This repository contains reusable agent skills, along with a small management layer that maintains them in a single source and distributes them across projects via symlinks (macOS/Linux) or junctions (Windows).
 
