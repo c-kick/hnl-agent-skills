@@ -21,6 +21,10 @@ ontoly build .
 5. Cite graph evidence in answers: node IDs, edge types, route paths, package names, source locations, diagnostics, and confidence.
 6. Only fall back to file search when Ontoly cannot answer, reports low confidence, or the user explicitly asks for source-level review.
 
+## Documentation
+- https://www.ontoly.xyz/docs
+- https://www.ontoly.xyz/docs/cli
+
 ## Useful Commands
 
 ```bash
