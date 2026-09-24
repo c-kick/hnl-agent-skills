@@ -1,4 +1,5 @@
 import puppeteer from "puppeteer";
+// Usage: node shots.mjs 3.2 12 40.5   → shot_3.2.jpg, shot_12.jpg, shot_40.5.jpg (names use the number as JS prints it)
 const times=process.argv.slice(2).map(Number);
 const b=await puppeteer.launch({headless:"shell",args:["--no-sandbox","--autoplay-policy=no-user-gesture-required"]});
 const p=await b.newPage();await p.setViewport({width:1920,height:1080});

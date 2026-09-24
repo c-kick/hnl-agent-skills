@@ -14,14 +14,15 @@ const lines = JSON.parse(fs.readFileSync(process.argv[2] || "lines.json", "utf8"
 const out = [];
 for (const [i, text] of lines.entries()) {
   for (let attempt = 1; ; attempt++) {
+    const tts = new MsEdgeTTS();
     try {
-      const tts = new MsEdgeTTS();
       await tts.setMetadata(VOICE, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3, { wordBoundaryEnabled: true });
       const dir = `wb/${i}`; fs.mkdirSync(dir, { recursive: true });
       const r = await tts.toFile(dir, text, { rate: RATE });
-      out.push({ i, meta: fs.readFileSync(r.metadataFilePath, "utf8") }); tts.close();
+      out.push({ i, meta: fs.readFileSync(r.metadataFilePath, "utf8") });
       console.log(i, "ok"); break;
     } catch (e) { if (attempt >= 3) throw e; console.log(i, "retry", e.message); }
+    finally { try { tts.close(); } catch {} }
   }
 }
 fs.writeFileSync("wb.json", JSON.stringify(out));

@@ -9,7 +9,10 @@ for (const {i,meta} of wb){
   const sd=execSync(`${F} -i ${src} -af silencedetect=n=-50dB:d=0.05 -f null - 2>&1`).toString();
   const m=sd.match(/silence_start: (-?[\d.]+)[\s\S]*?silence_end: ([\d.]+)/);
   const lead = (m && parseFloat(m[1])<=0.01) ? parseFloat(m[2]) : 0;
-  execSync(`${F} -y -loglevel error -i ${src} -af "silenceremove=start_periods=1:start_threshold=-50dB,areverse,silenceremove=start_periods=1:start_threshold=-50dB,areverse,loudnorm=I=-16:TP=-1.5:LRA=7" -ar 44100 -ac 1 vo/t${i}.wav`);
+  // trim leading/trailing silence, then two-pass *linear* loudnorm (a single pass on short clips pumps)
+  execSync(`${F} -y -loglevel error -i ${src} -af "silenceremove=start_periods=1:start_threshold=-50dB,areverse,silenceremove=start_periods=1:start_threshold=-50dB,areverse" -ar 44100 -ac 1 vo/raw${i}.wav`);
+  const J=JSON.parse(execSync(`${F} -i vo/raw${i}.wav -af loudnorm=I=-16:TP=-1.5:LRA=7:print_format=json -f null - 2>&1`).toString().match(/\{[\s\S]*\}/)[0]);
+  execSync(`${F} -y -loglevel error -i vo/raw${i}.wav -af "loudnorm=I=-16:TP=-1.5:LRA=7:measured_I=${J.input_i}:measured_TP=${J.input_tp}:measured_LRA=${J.input_lra}:measured_thresh=${J.input_thresh}:offset=${J.target_offset}:linear=true" -ar 44100 -ac 1 vo/t${i}.wav`);
   const dur=parseFloat(execSync(`${F} -i vo/t${i}.wav 2>&1 || true`).toString().match(/Duration: (\d+):(\d+):([\d.]+)/).slice(3)[0]);
   const words=JSON.parse(meta).Metadata.filter(x=>x.Type==="WordBoundary").map(x=>({w:x.Data.text.Text,t:+(t+x.Data.Offset/1e7-lead).toFixed(3)}));
   cues.push({i,start:+t.toFixed(3),dur:+dur.toFixed(3),words});
