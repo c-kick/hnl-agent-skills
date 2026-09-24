@@ -1,6 +1,6 @@
 ---
 name: explainer-animation
-description: Autonomously produce a professional 30–60 s whimsical, hand-drawn paper-collage explainer animation in pure JavaScript (canvas + Web Audio) about what the current project does and how. Includes neural-TTS narration, a synthesised score and sound effects, a self-contained HTML player and an MP4 export. Use when the user asks for an explainer video, animated intro, promo or "what does this project do" animation, or invokes /explainer-animation. Honours a requested narration language (default English) and a token budget (default $10).
+description: Autonomously produce a professional 30–60 s whimsical, hand-drawn paper-collage explainer animation in pure JavaScript (canvas + Web Audio) about what the current project does and how. Includes neural-TTS narration, a synthesised score and sound effects, a self-contained HTML player and an MP4 export. Use when the user asks for an explainer video, animated intro, promo or "what does this project do" animation, or invokes /explainer-animation. Honours a requested narration language (default English) and a token budget (default 10 USD).
 ---
 
 # Explainer animation: pure-JS paper-collage video with narration
@@ -36,11 +36,11 @@ Check these first; if one is missing, stop and tell the user rather than working
     "R.S.I." from the reference build), and keep code identifiers off-screen or treat them as proper nouns;
   - make sure the embedded fonts cover every glyph (`SUBSET=latin-ext|cyrillic|greek|…`;
     for CJK use a font with full coverage and verify rendering in a screenshot).
-- **Length:** 30–60 s (aim ~55 s). **Budget:** default $10 of tokens, or whatever the user says.
+- **Length:** 30–60 s (aim ~55 s). **Budget:** default 10 USD of tokens, or whatever the user says.
 - **Output:** a directory inside the project, e.g. `demos/explainer/` (check for an existing
   `demos/`/`docs/` convention first). Don't commit unless asked.
 
-## Budget discipline (this is what keeps it under $10)
+## Budget discipline (this is what keeps it under 10 USD)
 
 - Don't read the codebase broadly: `CLAUDE.md` + README are usually enough. Delegate
   any deeper exploration to a cheap subagent only if the docs are thin.
