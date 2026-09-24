@@ -1,4 +1,5 @@
 import fs from "fs";
+const OUTDIR=process.env.OUTDIR;
 let s=fs.readFileSync("src.html","utf8");
 // every {{F_Name}} placeholder is filled from fonts/Name.woff2
 s=s.replace(/\{\{F_(\w+)\}\}/g,(_,f)=>fs.readFileSync(`fonts/${f}.woff2`).toString("base64"));
@@ -8,7 +9,10 @@ const cues=JSON.parse(fs.readFileSync("cues.json","utf8")).map(c=>({start:c.star
 s=s.replace("{{CUES}}",()=>JSON.stringify(cues));
 const {dur}=JSON.parse(fs.readFileSync("timeline.json","utf8"));
 s=s.replace("{{DUR}}",String(dur));
-const OUTDIR=process.env.OUTDIR;if(OUTDIR){fs.mkdirSync(OUTDIR,{recursive:true});fs.writeFileSync(OUTDIR+"/index.html",s)}
+// per-project seed for the score and the opening look: pass SEED=<project name>; falls back to the first narration line
+const SEED=process.env.SEED||JSON.parse(fs.readFileSync("lines.json","utf8"))[0];
+s=s.replace("{{SEED}}",()=>JSON.stringify(SEED));
+if(OUTDIR){fs.mkdirSync(OUTDIR,{recursive:true});fs.writeFileSync(OUTDIR+"/index.html",s)}
 fs.writeFileSync("out.html",s);
 const left=s.match(/\{\{\w+\}\}/g);if(left)console.error("unfilled placeholders:",[...new Set(left)].join(" "));
-console.log("built",(s.length/1024).toFixed(0)+"KB, DUR",dur);
+console.log("built",(s.length/1024).toFixed(0)+"KB, DUR",dur,"SEED",JSON.stringify(SEED));

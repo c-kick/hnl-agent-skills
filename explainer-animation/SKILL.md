@@ -103,10 +103,16 @@ W=<scratchpad>/explainer; mkdir -p "$W" && cp <skill>/scripts/* "$W"/ && cd "$W"
      and `DUR`. Key **every** scene boundary, wipe, shake and sound event to these. The reference
      still has literal seconds for its own scenes; don't copy that. Literals silently desync
      the moment the voice, `RATE`, `START` or `GAP` changes.
+   - **per-project variation** (seeded by `SEED`): `MUS` generates the score (key, chord
+     progression, voicing, melody, lead instrument, kick pattern, arpeggio shape) and fills
+     `CHORDS`/`MEL`; `STYLE` picks the title paper (reused for the closing scene), a collage layout
+     (`TITLE_LAYOUTS`), and the mascot's side and entrance. Never paste fixed chords or a melody
+     back in, or every video will open with the same tune.
    - Placeholders filled by `build.mjs`: `{{F_<FontFile>}}`, `{{NARRATION}}`, `{{CUES}}`
-     (with per-word timestamps), `{{DUR}}`. It warns about any placeholder left unfilled.
+     (with per-word timestamps), `{{DUR}}`, `{{SEED}}`. It warns about any placeholder left unfilled.
    - The first line must be `<meta charset="utf-8">`; without it every `€ × → ▲ … ’` turns to mojibake.
-6. **Build + QA loop:** `OUTDIR=<project>/demos/explainer node build.mjs`, then
+6. **Build + QA loop:** `SEED=<project-name> OUTDIR=<project>/demos/explainer node build.mjs`
+   (always pass `SEED`; without it the first narration line is used, so editing that line changes the music), then
    `node shots.mjs <t1> <t2> …` (renders exact timeline times, prints console errors) and
    `./sheet.sh X.jpg t1 t2 t3 t4` (same times as passed to `shots.mjs`). Check every scene at
    least once, mid-animation and settled. Any `at(...)` miss shows up in the printed console errors.
@@ -130,6 +136,11 @@ W=<scratchpad>/explainer; mkdir -p "$W" && cp <skill>/scripts/* "$W"/ && cd "$W"
 - Palette: warm vintage paper colours (kraft, cream, teal, mustard, tomato red, sky, pink,
   navy) with near-black ink `#1f1a17`. Give each scene its own backdrop paper (kraft, sky,
   graph paper, mint, legal pad, notebook, cream), and bookend with the same paper.
+- **Make the opening this project's own.** The reference title card (logo + underline + subtitle,
+  collage scraps, robot with a thought bubble) is one example, not a template. `STYLE` already
+  varies the paper, layout and mascot entrance; on top of that, build the title card around an object
+  or metaphor from *this* project (a registry box, a terminal, a device…), and change the subtitle
+  device and the mascot's first action. If it could be mistaken for another explainer's opening, redo it.
 - Everything is a cut-out: torn edges with a white paper rim, a soft offset shadow, and tape
   strips on important sheets. Mix fonts ransom-note style for the title only; it must still
   read correctly (watch for `l`→`1`, `n`→`N`, `e`→`E` in some display fonts).
@@ -153,8 +164,9 @@ W=<scratchpad>/explainer; mkdir -p "$W" && cp <skill>/scripts/* "$W"/ && cd "$W"
   during speech (short-term), with ducking `1-0.6*k` around each cue and louder in gaps.
   Starting levels that worked were `musicLevel 0.3`, `sfx 0.5`, and master into a gentle
   compressor. The final mix is **−16 LUFS integrated, ≤ −1.5 dBTP**.
-- The score is ~100 BPM in a major key: I–vi–IV–V pizzicato "oom-pah" + upright bass + glockenspiel
-  melody or arpeggios. Vary the texture per section (add shaker/snap/kick, a woodblock "clock" for
+- The score is 100 BPM in a major key: pizzicato "oom-pah" + upright bass + a lead melody or arpeggios.
+  Key, progression, melody, lead (glockenspiel, pluck or bell), kick pattern and arpeggio shape are
+  seeded per project by `MUS`. The tempo stays fixed because `BAR` also drives `assemble.mjs`. Vary the texture per section (add shaker/snap/kick, a woodblock "clock" for
   tension). End with a final chord hit + sparkle + cymbal after the last word, preceded by a riser.
   The engine places these at `FIN` automatically.
 - Use one dramatic audio gesture (e.g. a tape-stop to silence on "halt/stop") to punctuate

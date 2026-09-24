@@ -53,10 +53,20 @@ function at(line,word,nth=1){const c=CUES[line],hits=c?c.words.filter(x=>normW(x
 const lineStart=i=>CUES[i].start,lineEnd=i=>CUES[i].start+CUES[i].dur;
 const END=lineEnd(CUES.length-1);       // last word ends
 const FIN=Math.ceil(END/BAR-0.05)*BAR;  // final chord hit: first bar line after the last word
+/* ---------------- per-project variation ---------------- */
+// SEED is filled by build.mjs (env SEED=<project name>, else the first narration line). The score (MUS) and the opening
+// look (STYLE) derive from it, so every project sounds and opens differently, and a rebuild of the
+// same project stays identical. Tempo is fixed at 100 BPM: BAR also drives assemble.mjs.
+const SEED_STR={{SEED}};
+const SEED=[...SEED_STR].reduce((h,c)=>Math.imul(h^c.codePointAt(0),16777619)>>>0,2166136261);
 if(DUR<FIN+2.5)console.error(`DUR ${DUR} leaves no room for the finale at ${FIN.toFixed(2)}: raise TAIL in assemble.mjs`);
 const INK="#1f1a17", CREAM="#f6efdc", KRAFT="#c9a26b", RED="#e0473c", ORANGE="#f08a3c", MUSTARD="#f2c14e",
       TEAL="#3f9c94", BLUE="#4f86c6", SKY="#9cc9e3", PINK="#f2a7a0", GREEN="#5fae6a", DKGREEN="#2f7a4f",
       NAVY="#2b3a67", PURPLE="#8a6fb5", BROWN="#8b5a3c", YELLOW="#f9e27d", WHITE="#fffdf7";
+// opening look: title paper (reused for the closing scene as a bookend), collage layout, mascot entrance
+const STYLE=(()=>{const r=mulberry(SEED^0x2545f491),pick=a=>a[Math.floor(r()*a.length)];
+  return{paper:pick(["kraft","sky","mint","cream","graph","legal","note"]),layout:Math.floor(r()*3),
+    entrance:pick(["rise","slide","drop"]),side:r()<0.5?-1:1,fillOff:Math.floor(r()*10)}})();
 
 /* ---------------- math / rng ---------------- */
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -202,9 +212,12 @@ function buildAssets(){
   // ransom logo letters
   const word="hnl-trader",fonts=["Abril Fatface","Special Elite","Abril Fatface","Abril Fatface","Caveat","Permanent Marker","Abril Fatface","Special Elite","Caveat","Abril Fatface"];
   const fills=[RED,CREAM,MUSTARD,INK,TEAL,CREAM,ORANGE,SKY,CREAM,PINK];
-  S.logo=[...word].map((ch,i)=>{const r=mulberry(500+i);const f=fills[i];const dark=[INK,RED,TEAL].includes(f);const isDash=ch==="-";
+  // glyph-safe font per letter: Caveat's l/I/1 read as "/", Permanent Marker turns most lowercase into capitals
+  const fontOk=(f,ch)=>!(f==="Caveat"&&/[lI1|]/.test(ch))&&!(f==="Permanent Marker"&&/[a-z]/.test(ch)&&!/[cosvwxz]/.test(ch));
+  const fontFor=(ch,i)=>{for(let k=0;k<fonts.length;k++){const f=fonts[(i+k)%fonts.length];if(fontOk(f,ch))return f}return"Abril Fatface"};
+  S.logo=[...word].map((ch,i)=>{const r=mulberry(500+i);const f=fills[(i+STYLE.fillOff)%fills.length];const dark=[INK,RED,TEAL].includes(f);const isDash=ch==="-";
     const w=isDash?54:88+r()*18,h=isDash?46:122+r()*16;
-    return{sp:makeSprite({w,h,fill:f,seed:600+i,torn:2.6,paint:(g)=>{const fs=fonts[i]==="Caveat"?"700 ":"";g.font=`${fs}${h*0.78}px "${fonts[i]}"`;g.fillStyle=dark?CREAM:INK;g.textAlign="center";g.textBaseline="middle";g.fillText(ch,w/2,h/2+(fonts[i]==="Special Elite"?4:2))}}),
+    return{sp:makeSprite({w,h,fill:f,seed:600+i,torn:2.6,paint:(g)=>{const fn=fontFor(ch,i),fs=fn==="Caveat"?"700 ":"";g.font=`${fs}${h*0.78}px "${fn}"`;g.fillStyle=dark?CREAM:INK;g.textAlign="center";g.textBaseline="middle";g.fillText(ch,w/2,h/2+(fontFor(ch,i)==="Special Elite"?4:2))}}),
       rot:(r()-.5)*0.26,dy:(r()-.5)*18,w}});
   // robot
   S.rBody=makeSprite({w:190,h:165,fill:MUSTARD,seed:21,r:10,paint:(g)=>{g.fillStyle=CREAM;g.beginPath();g.roundRect(28,24,134,74,8);g.fill();
@@ -367,33 +380,41 @@ function gear(g,x,y,r,rot,seed){const p=[];const n=10;for(let i=0;i<=n*4;i++){co
 function bg(g,k){g.drawImage(BG[k],-80,-80)}
 function tapeOn(g,x,y,rot,alt){drawSprite(g,alt?S.tape2:S.tape,x,y,{rot,lift:0.2,shadow:0.15})}
 
+// Collage layouts for the title card, picked by STYLE.layout: [sprite, x, y, rot, pop time, scale].
+// A starting point only: design the opening around the new project's own objects (see SKILL.md).
+const TITLE_LAYOUTS=[
+  {items:[["halftone",200,150,-0.1,0.12,0.6],["strip",1680,110,0.2,0.3,0.8],["scrap",1650,820,-0.14,0.55],["circleO",1580,480,0.2,0.75],["strip",240,860,-0.18,0.95]],
+   tapes:[[1560,700,-0.5],[120,90,0.6]],stars:[[470,610,22],[1420,610,16],[1740,470,14]]},
+  {items:[["halftone",230,880,0.15,0.12,0.8],["strip",330,120,-0.22,0.3],["scrap",1700,120,0.08,0.55,0.65],["circleO",1690,880,-0.2,0.75],["strip",1560,1010,0.06,0.95,0.7]],
+   tapes:[[1620,50,0.4],[140,760,-0.6]],stars:[[180,520,18],[1760,560,20],[560,960,14]]},
+  {items:[["circleO",200,120,0.2,0.12,0.8],["halftone",1720,130,-0.2,0.3,0.55],["scrap",230,860,-0.1,0.55,0.85],["strip",1690,900,-0.25,0.75],["strip",960,70,0.02,0.95,0.8]],
+   tapes:[[330,770,-0.4],[1640,40,0.5]],stars:[[520,190,16],[1450,560,22],[150,560,14]]}];
 function scene0(g,t){
-  bg(g,"kraft");
-  drawSprite(g,S.halftone,280,250,{sc:pop(t,0.12),rot:-0.1});
-  drawSprite(g,S.strip,1660,190,{sc:pop(t,0.3),rot:0.28});
-  drawSprite(g,S.scrap,1650,820,{sc:pop(t,0.55),rot:-0.14});tapeOn(g,1560,700,-0.5);
-  drawSprite(g,S.circleO,1520,420,{sc:pop(t,0.75),rot:0.2});
-  drawSprite(g,S.strip,240,860,{sc:pop(t,0.95),rot:-0.18});
-  tapeOn(g,250,120,0.6*pop(t,0.4),1);
-  doodleStar(g,470,610,22,31,P(t,1.0,0.3));doodleStar(g,1420,610,16,35,P(t,1.2,0.3));doodleStar(g,1740,470,14,39,P(t,1.35,0.3));
+  bg(g,STYLE.paper);
+  const L=TITLE_LAYOUTS[STYLE.layout];
+  L.items.forEach(([k,x,y,rot,t0,sc=1])=>drawSprite(g,S[k],x,y,{sc:sc*pop(t,t0),rot}));
+  L.tapes.forEach(([x,y,rot],i)=>tapeOn(g,x,y,rot*pop(t,0.4+i*0.2),i));
+  L.stars.forEach(([x,y,r],i)=>doodleStar(g,x,y,r,31+i*4,P(t,1.0+i*0.18,0.3)));
   // logo
   drawLogo(g,t,960,300,1.52,0.085,1.12);
   ink(g,bez([640,405],[820,430],[1100,392],[1290,412],40),{w:7,col:RED,seed:41,reveal:E.outCubic(P(t,2.85,0.45))});
   hand(g,"a small, careful trading agent",960,470,{size:58,align:"center",p:P(t,4.25,1.1),col:"#3a2a1c"});
-  // robot rising
-  const rp=P(t,3.88,0.62);const ry=lerp(1400,790,E.outBack(rp,1.6));
+  // mascot entrance (STYLE.entrance) on the left or right (STYLE.side); the bubble mirrors to the other side
+  const D=STYLE.side,rx0=960+D*200,rp=P(t,3.88,0.62);
+  const [rx,ry]=STYLE.entrance==="slide"?[lerp(960+D*1400,rx0,E.outBack(rp,1.2)),830]
+    :STYLE.entrance==="drop"?[rx0,lerp(-500,830,E.outElastic(rp))]:[rx0,lerp(1400,830,E.outBack(rp,1.6))];
   const wave=t>4.4&&t<5.6?Math.sin((t-4.4)*14)*0.35:0;
-  const lookUp=t>5.4?[1,-0.3]:[0,0];
-  robot(g,t,780,ry,1,{armL:0.4,armR:t>4.4&&t<5.6?2.6+wave:0.45,look:lookUp,mouth:t>4.4&&t<5.5?"big":"smile",antWob:rp<1?(1-rp)*30*Math.sin(t*30):0});
+  const lookUp=t>5.4?[-D,-0.3]:[0,0];
+  robot(g,t,rx,ry,1,{armL:0.4,armR:t>4.4&&t<5.6?2.6+wave:0.45,look:lookUp,mouth:t>4.4&&t<5.5?"big":"smile",antWob:rp<1?(1-rp)*30*Math.sin(t*30):0});
   // thought bubble
   const bp=pop(t,5.42,0.4);
-  if(bp>0){drawSprite(g,S.bubDot2,890,640,{sc:pop(t,5.3,0.3)});drawSprite(g,S.bubDot1,945,605,{sc:pop(t,5.36,0.3)});
-    drawSprite(g,S.bubble,1190,660,{sc:bp,over:(q)=>{bulb(q,100,120,1.25,51,P(t,5.55,0.4),"#3a2a1c");
+  if(bp>0){drawSprite(g,S.bubDot2,960+D*80,670,{sc:pop(t,5.3,0.3)});drawSprite(g,S.bubDot1,960+D*25,635,{sc:pop(t,5.36,0.3)});
+    drawSprite(g,S.bubble,960-D*240,690,{sc:bp,over:(q)=>{bulb(q,100,120,1.25,51,P(t,5.55,0.4),"#3a2a1c");
       ink(q,[[160,118],[222,118]],{w:5,seed:52,reveal:P(t,5.95,0.25)});if(t>6.05)arrowHead(q,[226,118],[160,118],{len:18,seed:53});
       if(t>6.1)drawSprite(q,S.coin,290,118,{sc:pop(t,6.12,0.35)})}})}
 }
 function drawLogo(g,t,cx,cy,t0,dt,sc){
-  const L=S.logo;const gap=6;let tw=L.reduce((a,l)=>a+l.w+gap,0)-gap;let x=cx-tw*sc/2;
+  const L=S.logo;const gap=6;let tw=L.reduce((a,l)=>a+l.w+gap,0)-gap;sc=Math.min(sc,1600/tw);let x=cx-tw*sc/2; // long names shrink to fit
   L.forEach((l,i)=>{const w=l.w*sc;const s=pop(t,t0+i*dt,0.34,2.8);if(s>0)drawSprite(g,l.sp,x+w/2,cy+l.dy*sc-(1-P(t,t0+i*dt,0.2))*40,{sc:s*sc,rot:l.rot,lift:1.2});x+=w+gap*sc})}
 
 function scene1(g,t){
@@ -584,7 +605,7 @@ function scene5(g,t){
     if(lk>=1)arrowHead(g,[330,860],[380,960],{col:BLUE,seed:951});hand(g,"tomorrow’s playbook",1010,912,{size:48,col:BLUE,p:P(t,48.15,0.6),align:"center"})}
 }
 function scene6(g,t){
-  bg(g,"cream");
+  bg(g,STYLE.paper); // bookend: same paper as the title
   const C=[960,540],RX=640,RY=350;const angs=[-90,-18,54,126,198].map(a=>a*Math.PI/180);const TS=[49.86,50.66,51.39,52.23,53.06];
   const pos=angs.map(a=>[C[0]+Math.cos(a)*RX,C[1]+Math.sin(a)*RY]);
   // arrows between chips
@@ -643,8 +664,28 @@ function drawFrame(t){
 /* ================= AUDIO ================= */
 const mtof=m=>440*Math.pow(2,(m-69)/12);
 const HALT_A=40.99,HALT_B=43.2; // subject-specific: the tape-stop "halt" gesture; derive from at() in new work
-const CHORDS=[{v:[57,60,65],b:41},{v:[57,62,65],b:38},{v:[58,62,65],b:46},{v:[58,60,64],b:48}];
-const MEL=[[[0,72],[0.5,69],[1,65],[1.5,69],[2,72],[3,77]],[[0,74],[0.5,72],[1,69],[2,74],[3,72]],[[0,70],[0.5,74],[1,77],[2,74],[2.5,70]],[[0,72],[0.5,76],[1,79],[2,76],[3,72],[3.5,70]]];
+// Seeded score: key, chord progression, voicing, melody, lead instrument, kick pattern and arpeggio
+// shape all come from SEED. CHORDS/MEL keep the shape the event builder expects:
+// CHORDS[k] = {v:[3 midi notes], b: bass midi}, MEL[k] = [[beat, midi], …] (played an octave up).
+const MUS=(()=>{const r=mulberry(SEED^0x9e3779b9),pick=a=>a[Math.floor(r()*a.length)];
+  const SC=[0,2,4,5,7,9,11],deg=d=>SC[d%7]+12*Math.floor(d/7);
+  const key=Math.floor(r()*12),tonic=54+key;                        // tonic midi 54..65
+  const prog=pick([[0,5,3,4],[0,4,5,3],[5,3,0,4],[0,3,5,4],[0,2,3,4],[3,0,4,5],[0,5,1,4],[0,3,4,3]]);
+  const voice=(d,prev)=>{const root=tonic+deg(d),tri=[root,tonic+deg(d+2),tonic+deg(d+4)];const c=[];
+    for(let o=-2;o<=2;o++)for(let inv=0;inv<3;inv++){let v=tri.map(x=>x+12*o);for(let k=0;k<inv;k++)v=[v[1],v[2],v[0]+12];if(v[0]>=54&&v[2]<=72)c.push(v)}
+    const cost=v=>v.reduce((a,x,k)=>a+Math.abs(x-prev[k]),0);return{v:c.sort((a,b)=>cost(a)-cost(b))[0],b:36+((root-36)%12+12)%12}};
+  let prev=[57,61,64];const chords=prog.map(d=>{const ch=voice(d,prev);prev=ch.v;return ch});
+  const scale=[];for(let m=58;m<=81;m++)if(SC.includes(((m-tonic)%12+12)%12))scale.push(m);
+  const RHY=[[0,0.5,1,1.5,2,3],[0,1,1.5,2,3],[0,0.5,1,2,2.5,3,3.5],[0,1.5,2,3],[0,0.5,1.5,2,3]];
+  let cur=scale[Math.floor(scale.length*0.55)];
+  const mel=chords.map(ch=>pick(RHY).map(bt=>{const tones=scale.filter(m=>ch.v.some(x=>(x-m)%12===0));
+    if(bt%2===0)cur=tones.reduce((a,m)=>Math.abs(m-cur)<Math.abs(a-cur)?m:a,tones[0]);   // strong beat: nearest chord tone
+    else{const i=scale.indexOf(cur)+(r()<0.5?-1:1)*(r()<0.8?1:2);cur=scale[clamp(i,0,scale.length-1)]}
+    return[bt,cur]}));
+  return{key,chords,mel,tonic:voice(0,chords[3].v),lead:pick(["glock","pluck","bell"]),
+    kick:pick([[0,2],[0,2,3],[0,1,2,3]]),arp:pick([[0,1,2,3],[0,2,1,3],[0,1,2,3,2,1]]),sparkle:tonic+24}})();
+const CHORDS=MUS.chords,MEL=MUS.mel;
+function LEAD(A,t,m,v){if(MUS.lead==="pluck")I.pluck(A,t,m,v*1.2,0.4);else if(MUS.lead==="bell"){I.glock(A,t,m,v*0.8,2.4);I.glock(A,t,m+12,v*0.25,1.2)}else I.glock(A,t,m,v)}
 function noiseBuf(ac,seed,dur=2){const n=Math.floor(ac.sampleRate*dur),b=ac.createBuffer(1,n,ac.sampleRate),d=b.getChannelData(0),r=mulberry(seed);for(let i=0;i<n;i++)d[i]=r()*2-1;return b}
 function crackleBuf(ac,seed,dur,dens=0.004){const n=Math.floor(ac.sampleRate*dur),b=ac.createBuffer(1,n,ac.sampleRate),d=b.getChannelData(0),r=mulberry(seed);let env=0;
   for(let i=0;i<n;i++){if(r()<dens)env=0.4+r()*0.6;env*=0.9993;const tt=i/n;d[i]=(r()*2-1)*(0.25+env)*Math.sin(Math.PI*tt)}return b}
@@ -696,7 +737,7 @@ function buildEvents(){
   for(let b=0;b<bars;b++){const t0=b*BAR;const c=CHORDS[b%4];
     const sec=b<3?"intro":b<6?"world":b<10?"think":b<14?"guard":b<18?"paper":b<20?"review":"outro";
     const finBar=Math.round(FIN/BAR); // FIN is on the grid already
-    if(b>=finBar){ if(b===finBar){add(t0,A=>{c.v.concat([69,72,77]).forEach(m=>I.pluck(A,t0,m,0.2,1.6));I.bass(A,t0,41,0.5,2.2);I.bass(A,t0,29,0.35,2.4);I.glock(A,t0,77,0.2,3);I.glock(A,t0,84,0.14,3);FX.cymbal(A,t0,0.1)})} continue}
+    if(b>=finBar){ if(b===finBar){const T=MUS.tonic;add(t0,A=>{T.v.concat(T.v.map(m=>m+12)).forEach(m=>I.pluck(A,t0,m,0.2,1.6));I.bass(A,t0,T.b,0.5,2.2);I.bass(A,t0,T.b-12,0.35,2.4);I.glock(A,t0,T.v[2]+12,0.2,3);I.glock(A,t0,T.v[0]+24,0.14,3);FX.cymbal(A,t0,0.1)})} continue}
     for(let beat=0;beat<4;beat++){const tb=t0+beat*BEAT;
       if(tb>=HALT_A-0.02&&tb<HALT_B-0.02)continue;
       const lightReview=sec==="review";
@@ -704,15 +745,15 @@ function buildEvents(){
       if(beat===1||beat===3){add(tb,A=>c.v.forEach(m=>I.pluck(A,tb,m,lightReview?0.1:0.13,0.28)))}
       if(beat===3)add(tb+BEAT/2,A=>c.v.forEach(m=>I.pluck(A,tb+BEAT/2,m+12,0.07,0.2)));
       if(["world","think","guard","paper","outro"].includes(sec)){
-        if(beat===0||beat===2)add(tb,A=>I.kick(A,tb,0.32));
+        if(MUS.kick.includes(beat))add(tb,A=>I.kick(A,tb,beat%2?0.22:0.32));
         if(beat===1||beat===3)add(tb,A=>{I.noise(A,tb,{f:1900,q:1.4,v:0.1,d:0.06,seed:7});I.noise(A,tb+0.012,{f:1600,q:1.2,v:0.08,d:0.08,seed:8})});
         for(const h of [0,0.5])add(tb+h*BEAT,A=>I.noise(A,tb+h*BEAT,{type:"highpass",f:7000,v:h?0.045:0.03,d:0.05,seed:9+h*2}));
       }
       if(sec==="guard"){for(const h of [0.5])add(tb+h*BEAT,A=>I.block(A,tb+h*BEAT,beat%2?1180:880))}
     }
     if(["intro","guard","outro"].includes(sec)||b===5){const mel=MEL[b%4];const vol=sec==="intro"?0.16:0.11;
-      mel.forEach(([bt,m])=>{const tt=t0+bt*BEAT;if(tt>=HALT_A-0.02&&tt<HALT_B)return;add(tt,A=>I.glock(A,tt,m+12,vol))})}
-    if(sec==="think"||sec==="review"||sec==="paper"){const arp=c.v.concat([c.v[1]+12]);for(let k=0;k<8;k++){const tt=t0+k*BEAT/2;if(tt>=HALT_A-0.02&&tt<HALT_B)continue;const m=arp[k%4]+12;add(tt,A=>I.glock(A,tt,m,sec==="paper"?0.05:0.075,0.9))}}
+      mel.forEach(([bt,m])=>{const tt=t0+bt*BEAT;if(tt>=HALT_A-0.02&&tt<HALT_B)return;add(tt,A=>LEAD(A,tt,m+12,vol))})}
+    if(sec==="think"||sec==="review"||sec==="paper"){const arp=c.v.concat([c.v[1]+12]),ao=MUS.arp;for(let k=0;k<8;k++){const tt=t0+k*BEAT/2;if(tt>=HALT_A-0.02&&tt<HALT_B)continue;const m=arp[ao[k%ao.length]]+12;add(tt,A=>I.glock(A,tt,m,sec==="paper"?0.05:0.075,0.9))}}
   }
   // sfx
   const S_=(t,f)=>add(t,f);
@@ -749,7 +790,7 @@ function buildEvents(){
   [49.81,50.61,51.34,52.18,53.01].forEach((t,i)=>{S_(t,A=>FX.pop(A,t,0.4,0.9+i*0.08));S_(t+0.02,A=>I.glock(A,t+0.02,[77,81,84,86,89][i],0.12,1.2,A.sfx))});
   [50.06,50.86,51.59,52.43].forEach((t,i)=>S_(t,A=>FX.scribble(A,t,0.5,0.06)));
   for(let i=0;i<10;i++){const t=FIN-1.4+i*0.1;S_(t,A=>FX.pop(A,t,0.35,0.9+((i*3)%4)*0.1))}
-  S_(FIN-1.2,A=>FX.riser(A,FIN-1.2,1.2,0.1));S_(FIN,A=>FX.sparkle(A,FIN,0.1,89));S_(FIN+0.1,A=>FX.scribble(A,FIN+0.1,1.2,0.08));S_(FIN+0.15,A=>FX.boing(A,FIN+0.15,0.1,260,0.4));S_(FIN+0.4,A=>FX.pop(A,FIN+0.4,0.3,0.8));
+  S_(FIN-1.2,A=>FX.riser(A,FIN-1.2,1.2,0.1));S_(FIN,A=>FX.sparkle(A,FIN,0.1,MUS.sparkle));S_(FIN+0.1,A=>FX.scribble(A,FIN+0.1,1.2,0.08));S_(FIN+0.15,A=>FX.boing(A,FIN+0.15,0.1,260,0.4));S_(FIN+0.4,A=>FX.pop(A,FIN+0.4,0.3,0.8));
   ev.sort((a,b)=>a.t-b.t);return ev}
 const EVENTS=buildEvents();
 function musicGainAt(t){

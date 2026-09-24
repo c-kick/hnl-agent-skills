@@ -63,6 +63,11 @@ Every visual beat and sound effect is timed from the narration's word timestamps
 `at(line, "word")` in the engine. That keeps the picture in sync when the voice or pacing changes.
 The video length is computed once, in `assemble.mjs`, and everything else reads it from there.
 
+Each project also gets its own music and opening. `build.mjs` passes a seed (`SEED=<project name>`)
+into the engine, which uses it to pick the key, chord progression, melody, lead instrument and groove,
+plus the title card's paper, collage layout and mascot entrance. Rebuilding the same project gives the
+same result.
+
 ## Layout
 
 | Path | Purpose |
@@ -84,6 +89,9 @@ The video length is computed once, in `assemble.mjs`, and everything else reads 
 
 - Keep `SKILL.md` under 500 lines; put overflow in `reference/`.
 - `BAR` (2.4 s at 100 BPM) appears in both `assemble.mjs` and the engine. Change them together.
+  This is also why the seeded score varies key and style but not tempo.
+- To add variety, extend the pools in `MUS` (progressions, rhythms, leads) and `TITLE_LAYOUTS` in
+  `reference/engine-example.html`. Keep the logo band (roughly y 220–380) clear in every layout: a long name spans the full width.
 - To check a change end to end without a new project, copy `scripts/*` to a scratch dir, provide
   a `lines.json` (an array of strings) and run steps 1–7 from `SKILL.md` with
   `reference/engine-example.html` as `src.html`. `shots.mjs` and `live.mjs` should print no errors.
