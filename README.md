@@ -22,6 +22,56 @@ You can also define bundles - predefined collections of skills. Example: `skill-
 
 ---
 
+## Skills included
+Last updated: 25 September 2026
+
+Grouped by the bundle they belong to. Installing a bundle also installs the bundles it extends.
+
+### `general`
+
+| Skill | What it does |
+|---|---|
+| [`reflect`](reflect/) | Reflects on the session, and audits your CLAUDE.md, AGENTS.md, settings and permissions, and improves them based on where the agent kept going wrong. |
+| [`browser-eyeballs`](browser-eyeballs/) | Lets the agent open, see and interact with web pages in a headless browser, including JavaScript-heavy and logged-in pages. |
+| [`user-review`](user-review/) | Reviews a web page through the eyes of a first-time visitor from its target audience, with no insider knowledge (needs `browser-eyeballs`). |
+| [`factual-mode`](factual-mode/) | Makes the agent dead-honest, by making it stick to what it can verify and say so when it can't, instead of guessing and hallucinating. |
+| [`critical-mode`](critical-mode/) | Makes the agent question whether your request is the right thing to do, at light, nuanced or aggressive intensity. |
+| [`sanity-check`](sanity-check/) | An emergency brake that stops a session that has drifted off course, reports where things stand and what went wrong, and proposes how to get back on track. |
+| [`project-ambassador`](project-ambassador/) | Acts as the project's memory, conscience and decision-maker, answering questions about its goals and conventions so the agent doesn't have to ask you. |
+| [`explainer-animation`](explainer-animation/) | Produces a 30–60 second hand-drawn explainer video about your project, with narration and music, as an HTML player and an MP4. Example: see the video at the beginning of this README! |
+
+### `writing`
+
+| Skill | What it does |
+|---|---|
+| [`humanize`](humanize/) | Rewrites text to remove the tell-tale signs of AI writing and make it sound like a person wrote it. |
+
+### `code_development` (extends `general`)
+
+| Skill | What it does |
+|---|---|
+| [`code-simplification`](code-simplification/) | Simplifies working code so it's easier to read and maintain, without changing what it does. |
+| [`commit-message`](commit-message/) | Drafts a commit message for all dirty files / changes currently in the repository, in the style of the project's commit history. |
+| [`commit-message-this`](commit-message-this/) | Does the same as `commit-message`, but only for the work done in the *current session*, and says which files belong in it. |
+| [`hostile-review`](hostile-review/) | Reviews your code, plan or design as a senior developer who hates it, and you, with severity-ranked criticism and concrete fixes. Be ready for harsh criticism. |
+| [`staff-review`](staff-review/) | Reviews code like a senior staff engineer, covering architecture, SOLID principles and security. |
+| [`systematic-debugging`](systematic-debugging/) | Debugs in four phases and finds the root cause before changing any code. |
+| [`bug-hunter`](bug-hunter/) | Searches a codebase for bugs nobody has noticed yet, and proves each one with a failing test. |
+| [`ontoly-software-graph`](ontoly-software-graph/) | Builds a map of a TypeScript codebase with Ontoly, so the agent can answer questions about architecture and dependencies without searching by hand. |
+| [`review-and-harden`](review-and-harden/) | Pulls out all the stops by running a full, mostly unattended cycle of review, planning, fixing and bug hunting on a codebase, proving every fix (expensive; needs four of the skills above). This is your best chance at hardening your project thoroughly before sending it into the real world. |
+
+### `web_development` (extends `general` and `code_development`)
+
+| Skill | What it does |
+|---|---|
+| [`i18n-standards`](i18n-standards/) | Standards for handling user-facing strings and preparing them for translation. |
+| [`js-standards`](js-standards/) | Standards for JavaScript modules, event handling, lazy loading and other browser-side code. |
+| [`php-documentation-standards`](php-documentation-standards/) | Standards for PHP docblocks and type hints so PhpStorm understands your code. |
+| [`scss-standards`](scss-standards/) | Standards for SCSS and CSS architecture, component styles and design tokens. |
+| [`spec-website`](spec-website/) | Answers what a good website should have, and audits sites, using The Website Specification and its primary sources. |
+
+---
+
 ## Installation
 
 **Windows (PowerShell):**
