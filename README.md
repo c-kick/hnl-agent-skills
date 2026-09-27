@@ -163,6 +163,16 @@ skill-update
 
 Works from any directory, runs `git pull` and `git submodule update --remote` in the registry. All projects with linked skills pick up changes immediately — no action needed in individual projects.
 
+### Activating newly added skills
+
+When a new skill appears in your local registry — whether you added it yourself or it arrived via `skill-update` — verify the resolved bundle with:
+
+```bash
+skill-ls-bundles <bundle>
+```
+
+If the skill should be active in current projects, install it into the configured targets with `skill-add <skill>` or `skill-bundle-add <bundle>`. Adding a directory to your local registry makes it available to install; it does not automatically add new symlinks to existing `.claude/skills` or `.codex/skills` target directories.
+
 ---
 
 ## Bundles
