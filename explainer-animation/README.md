@@ -8,6 +8,13 @@ Audio. There are no stock assets, video editors or paid services.
 The skill is written for the agent (`SKILL.md`). This file is for the humans installing and
 maintaining it.
 
+> [!IMPORTANT]
+> **Built for Claude Opus 5.5.** This skill was designed, tuned and tested with Claude Opus 5.5,
+> and it works best on that model. It may run on other models or agents (other Claude models,
+> Codex, …), but quality, cost and run time are untested there. When it runs on anything other
+> than Opus 5.5, the skill tells you so at the start, in its final report and in the generated
+> README.
+
 ## What you get
 
 In a directory inside the project (e.g. `demos/explainer/`):

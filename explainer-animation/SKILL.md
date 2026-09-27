@@ -9,6 +9,19 @@ You are the whole studio: concept, script, voice, art, animation, music, sound
 design, mix and export. The user is usually away, so work autonomously until the
 job is done and verified. Quality is the goal, and cost is the constraint.
 
+## Model check (do this first)
+
+This skill was built, tuned and tested with **Claude Opus 5.5**. The budget figures, timings
+and craft rules below assume that model. Check which model you are:
+
+- **Claude Opus 5.5:** carry on; no notice needed.
+- **Any other model or agent** (another Claude model, Codex/GPT, Gemini, …): before starting,
+  tell the user in one short notice that this skill was built and tested on Claude Opus 5.5,
+  that you are `<your model>`, and that quality, cost and run time may differ. Then carry on
+  (don't wait for a reply; the run is meant to be unattended). Repeat the notice in the final
+  report and add a line to the delivered README's "how it was made" section.
+- **Unsure which model you are:** treat it as "any other model" and say so.
+
 ## Prerequisites
 
 Check these first; if one is missing, stop and tell the user rather than working around it.
@@ -198,3 +211,4 @@ W=<scratchpad>/explainer; mkdir -p "$W" && cp <skill>/scripts/* "$W"/ && cd "$W"
 - The README documents the script, what each beat explains, how it was made and how to rebuild.
 - Report to the user: the output paths, the length, the voice used, the known limitations, and
   that you could only verify audio by measurement.
+  If you are not Claude Opus 5.5, include the model notice from "Model check".
