@@ -72,7 +72,7 @@ section "Bare / broad except (check what follows)" \
     g "^\s*except\s*:|except (Exception|BaseException)\b|catch \((e|err|error)\) \{\s*$"
 
 section "Emoji in code" \
-    perl -CSD -ne 'print "$ARGV:$.:$_" if /[\x{2600}-\x{27BF}\x{1F300}-\x{1FAFF}\x{2705}\x{274C}]/; close ARGV if eof' -- "${src[@]}"
+    perl -CSD -e 'for my $f (@ARGV) { open(my $fh, "<", $f) or next; while (<$fh>) { print "$f:$.:$_" if /[\x{2600}-\x{27BF}\x{1F300}-\x{1FAFF}\x{2705}\x{274C}]/ } close $fh }' -- "${src[@]}"
 
 section "Debug prints" \
     g "print\(f?[\"'](DEBUG|debug)|console\.(log|debug)\([\"'\`](DEBUG|debug)|\bvar_dump\(|\bdd\("
