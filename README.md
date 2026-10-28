@@ -60,6 +60,7 @@ Grouped by the bundle they belong to. Installing a bundle also installs the bund
 | [`bug-hunter`](bug-hunter/) | Searches a codebase for bugs nobody has noticed yet, and proves each one with a failing test. |
 | [`ontoly-software-graph`](ontoly-software-graph/) | Builds a map of a TypeScript codebase with Ontoly, so the agent can answer questions about architecture and dependencies without searching by hand. |
 | [`review-and-harden`](review-and-harden/) | Pulls out all the stops by running a full, mostly unattended cycle of review, planning, fixing and bug hunting on a codebase, proving every fix (expensive; needs four of the skills above). This is your best chance at hardening your project thoroughly before sending it into the real world. |
+| [`humanize-code`](humanize-code/) | Strips the tell-tale signs of AI-written code and reorganises the codebase so a developer can follow it, with minimal standard comments. Nothing changes until you approve its plan (uses `code-simplification` and `humanize`). |
 
 ### `web_development` (extends `general` and `code_development`)
 
