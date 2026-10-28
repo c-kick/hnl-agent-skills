@@ -39,6 +39,7 @@ Grouped by the bundle they belong to. Installing a bundle also installs the bund
 | [`sanity-check`](sanity-check/) | An emergency brake that stops a session that has drifted off course, reports where things stand and what went wrong, and proposes how to get back on track. |
 | [`project-ambassador`](project-ambassador/) | Acts as the project's memory, conscience and decision-maker, answering questions about its goals and conventions so the agent doesn't have to ask you. |
 | [`explainer-animation`](explainer-animation/) | Produces a 30–60 second hand-drawn explainer video about your project, with narration and music, as an HTML player and an MP4. Example: see the video at the beginning of this README! |
+| [`interview-me`](interview-me/) | Makes the agent ask its questions through the interactive picker (multiple choice or checklist, plus a free-text answer, arrow-key navigation) instead of inline in chat. Works in Claude Code and Codex. |
 
 ### `writing`
 
