@@ -100,11 +100,11 @@ section "Function names defined in several files" \
 # Files where comment lines outnumber a third of code lines.
 section "Comment-heavy files (comments > 1/3 of lines)" \
     bash -c 'for f in "$@"; do
-        awk -v f="$f" "{ t++ } /^[[:space:]]*(#|\/\/|\/\*|\*)/ && !/^#!/ { c++ } END { if (t > 20 && c * 3 > t) printf \"%s: %d/%d comment lines\n\", f, c, t }" "$f"
+        awk -v f="$f" "{ t++ } /^[[:space:]]*(#|\/\/|\/\*|\*)/ && !/^#!/ { c++ } END { if (t > 20 && c * 3 > t) printf \"%s: %d/%d comment lines\n\", f, c, t }" "./$f"
     done' _ "${src[@]}"
 
 section "Structure (files a reader can't navigate)" \
-    bash -c 'awk_file="$1"; shift; for f in "$@"; do awk -f "$awk_file" "$f"; done' _ "$here/structure.awk" "${src[@]}"
+    bash -c 'awk_file="$1"; shift; for f in "$@"; do awk -f "$awk_file" "./$f"; done' _ "$here/structure.awk" "${src[@]}"
 
 echo
 echo "# Not detectable by grep: one-implementation interfaces, impossible-case guards, masking"

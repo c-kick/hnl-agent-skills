@@ -53,5 +53,5 @@ END {
     if (inline >= 15 && inline > 2 * named_all) reasons = reasons "; " inline " inline callbacks vs " named_all " named functions"
     if (depth >= 6) reasons = reasons "; nesting depth " depth
     if (long > 10) reasons = reasons "; " long " lines over 100 chars"
-    if (reasons != "") printf "%s: %d lines%s\n", FILENAME, total, reasons
+    if (reasons != "") { name = FILENAME; sub(/^\.\//, "", name); printf "%s: %d lines%s\n", name, total, reasons }
 }
