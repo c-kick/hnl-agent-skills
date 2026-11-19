@@ -4,7 +4,7 @@
 ### What is it? Watch the explainer below.
 
 <video src="https://github.com/user-attachments/assets/f5441168-77af-443e-ba3e-2a95e8563936" width="100%" controls></video>
-This fun little explainer video was made by the `explainer-animation` skill, using Claude Opus 5.5
+This fun little explainer video was made by the `explainer-animation` skill, using Claude Opus 5.5.
 
 This repository contains reusable agent skills, along with a small management layer that maintains them in a single source and distributes them across projects via symlinks (macOS/Linux) or junctions (Windows).
 
@@ -15,7 +15,7 @@ By default, skills are installed into both `.claude/skills` and `.codex/skills`.
 The old `hnl-claude-skills.*` script names and `CLAUDE_SKILLS` environment variable remain supported for compatibility. New installs should use `agent-skills.*` and `AGENT_SKILLS`.
 
 ### Example
-In your project root, run `skill-add reflect`. This installs the `reflect` skill in `.claude/skills` and `.codex/skills` as symlinks/junctions pointing to the local repository at `~/.config/agent-skills`. No matter how many projects use the skill, it lives in one place — update it in the repository, and every project picks up the change immediately.
+In your project root, run `skill-add reflect`. This installs the `reflect` skill in `.claude/skills` and `.codex/skills` as symlinks/junctions pointing to the local repository at `~/.config/hnl-agent-skills`. No matter how many projects use the skill, it lives in one place — update it in the repository, and every project picks up the change immediately.
 
 #### Bundles
 You can also define bundles - predefined collections of skills. Example: `skill-bundle-add web_development` installs all skills in that bundle at once, each as a symlink/junction to the repository — the same as adding them individually. Bundles also support inheritance: `web_development` can extend `code_development`, which in turn extends `general`, so installing `web_development` pulls in the full chain automatically.
@@ -87,7 +87,7 @@ git clone --recurse-submodules https://github.com/c-kick/hnl-agent-skills.git "$
 
 The default location is `~/.config/hnl-agent-skills`. To use a different path, clone there instead and set `AGENT_SKILLS` in your environment before sourcing the script. Existing `CLAUDE_SKILLS` setups still work as a fallback.
 
-2. Add to PowerShell profile (Run `notepad $PROFILE` in PowerShell*):
+2. Add to PowerShell profile (run `notepad $PROFILE` in PowerShell):
 ```powershell
 # Optional: set a custom location
 # $env:AGENT_SKILLS = "D:\path\to\hnl-agent-skills"
@@ -98,7 +98,7 @@ The default location is `~/.config/hnl-agent-skills`. To use a different path, c
 
 Reload your shell (in Windows PowerShell, just run `. $PROFILE`), done.
 
-**macOS/Linux**
+**macOS/Linux:**
 
 1. Clone the repository
 ```bash
@@ -112,7 +112,7 @@ git clone --recurse-submodules https://github.com/c-kick/hnl-agent-skills.git ~/
 # export AGENT_SKILLS_TARGETS=".claude/skills .codex/skills"
 . "$HOME/.config/hnl-agent-skills/agent-skills.sh"
 ```
-Log out of SSH and back in again, and your bashrc should now expose all th ecommands listed below.
+Reload your shell (run `source ~/.bashrc` or `source ~/.zshrc`, or open a new terminal), and all the commands listed below are available.
 
 ---
 
@@ -182,12 +182,15 @@ If the skill should be active in current projects, install it into the configure
 Bundles are defined in `bundles.conf`. Format:
 
 ```ini
-[bundle-name]
-extends=other-bundle,another-bundle   # optional, comma-separated
+[bundle_name]
+extends=other_bundle,another_bundle
 skill-one
 skill-two
 ```
 
+- The `extends` line is optional and takes a comma-separated list of bundles.
+- Bundle names may only contain letters, digits and underscores (no hyphens). Skill names may contain hyphens.
+- Comments go on their own line, starting with `#`. A comment after a value on the same line is read as part of the value.
 - `extends` resolves recursively and deduplicates — installing `web_development` also installs everything in `code_development` and `general`.
 - Circular extends are detected and hard-error.
 - Multiple parents are supported: `extends=general,code_development`.
@@ -207,7 +210,7 @@ Create a skill and copy its folder to `~/.config/hnl-agent-skills/` (or whicheve
 For skills that live in their own repository, add them as a submodule:
 
 ```bash
-cd ~/.config/agent-skills   # on Windows PowerShell, use: cd "$HOME/.config/agent-skills"
+cd ~/.config/hnl-agent-skills   # on Windows PowerShell, use: cd "$HOME/.config/hnl-agent-skills"
 git submodule add https://github.com/you/skill-repo.git skill-name
 git commit -m "add: skill-name as submodule"
 git push
@@ -216,7 +219,7 @@ git push
 To update a submodule to its latest version:
 
 ```bash
-cd ~/.config/agent-skills   # on Windows PowerShell, use: cd "$HOME/.config/agent-skills"
+cd ~/.config/hnl-agent-skills   # on Windows PowerShell, use: cd "$HOME/.config/hnl-agent-skills"
 git submodule update --remote skill-name
 git commit -m "update: skill-name to latest"
 git push

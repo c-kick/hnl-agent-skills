@@ -1,9 +1,20 @@
 #!/usr/bin/env bash
 # agent-skills — bash helpers
 # Source this file from ~/.bashrc or ~/.zshrc:
-#   . "$HOME/.config/agent-skills/agent-skills.sh"
+#   . "$HOME/.config/hnl-agent-skills/agent-skills.sh"
+# Works in bash and zsh.
 
-_agent_skills_home="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# In zsh, each command starts by switching (for that function only) to the
+# bash behaviour the code below relies on: word splitting, unmatched globs
+# left as-is, 0-based arrays and BASH_REMATCH. In bash this is empty.
+if [ -n "${ZSH_VERSION:-}" ]; then
+    _SKILL_SHELL_COMPAT='emulate -L zsh; setopt sh_word_split no_nomatch ksh_arrays bash_rematch typeset_silent'
+else
+    _SKILL_SHELL_COMPAT=''
+fi
+
+# ${(%):-%x} is the zsh spelling of "the file being sourced".
+_agent_skills_home="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 if [ -z "${AGENT_SKILLS:-}" ]; then
     AGENT_SKILLS="${CLAUDE_SKILLS:-$_agent_skills_home}"
 fi
@@ -21,10 +32,8 @@ _skill_managed_target() {
 }
 
 _skill_target_dirs() {
-    local target
-    for target in $AGENT_SKILLS_TARGETS; do
-        [ -n "$target" ] && echo "$target"
-    done
+    # tr instead of unquoted expansion: zsh does not split variables on spaces
+    echo "$AGENT_SKILLS_TARGETS" | tr -s ' ' '\n' | grep .
 }
 
 _skill_target_label() {
@@ -37,6 +46,7 @@ _skill_target_label() {
 }
 
 skill-ls() {
+    eval "$_SKILL_SHELL_COMPAT"
     local skills_dir
     for d in "$AGENT_SKILLS"/*/; do
 		[ -d "$d" ] || continue
@@ -69,6 +79,7 @@ skill-ls() {
 }
 
 skill-add() {
+    eval "$_SKILL_SHELL_COMPAT"
     if [ $# -eq 0 ]; then
         echo "Usage: skill-add <skill> [skill...]"
         return 1
@@ -107,12 +118,15 @@ skill-add() {
 }
 
 skill-add-all() {
+    eval "$_SKILL_SHELL_COMPAT"
     for d in "$AGENT_SKILLS"/*/; do
+        [ -d "$d" ] || continue
         skill-add "$(basename "$d")"
     done
 }
 
 skill-remove() {
+    eval "$_SKILL_SHELL_COMPAT"
     if [ $# -eq 0 ]; then
         echo "Usage: skill-remove <skill> [skill...]"
         return 1
@@ -132,6 +146,7 @@ skill-remove() {
 }
 
 _load_bundles() {
+    eval "$_SKILL_SHELL_COMPAT"
     local conf="$AGENT_SKILLS/bundles.conf"
     if [ ! -f "$conf" ]; then
         echo "ERROR: bundles.conf not found in $AGENT_SKILLS" >&2
@@ -140,16 +155,21 @@ _load_bundles() {
 
     _BUNDLE_NAMES=()
 
+    # patterns live in variables: bash and zsh parse inline regexes differently
+    local re_comment='^[[:space:]]*#'
+    local re_section='^\[([^]]+)\]$'
+    local re_extends='^extends=(.+)$'
+
     local current=""
     while IFS= read -r line || [ -n "$line" ]; do
         # strip carriage return
         line="${line%$'\r'}"
         # skip comments and empty lines
-        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ "$line" =~ $re_comment ]] && continue
         [[ -z "${line// /}" ]] && continue
 
         # section header
-        if [[ "$line" =~ ^\[([^]]+)\]$ ]]; then
+        if [[ "$line" =~ $re_section ]]; then
             current="${BASH_REMATCH[1]}"
             _BUNDLE_NAMES+=("$current")
             eval "_BUNDLE_SKILLS_${current}=''"
@@ -160,7 +180,7 @@ _load_bundles() {
         [ -z "$current" ] && continue
 
         # extends directive
-        if [[ "$line" =~ ^extends=(.+)$ ]]; then
+        if [[ "$line" =~ $re_extends ]]; then
             eval "_BUNDLE_EXTENDS_${current}='${BASH_REMATCH[1]}'"
             continue
         fi
@@ -178,6 +198,7 @@ ${line}\""
 }
 
 _resolve_bundle() {
+    eval "$_SKILL_SHELL_COMPAT"
     local name="$1"
     shift
     # remaining args are the visiting stack
@@ -210,9 +231,8 @@ _resolve_bundle() {
     local extends_val
     eval "extends_val=\"\$_BUNDLE_EXTENDS_${name}\""
     if [ -n "$extends_val" ]; then
-        IFS=',' read -ra parents <<< "$extends_val"
-        for parent in "${parents[@]}"; do
-            parent="${parent// /}"
+        local parent
+        for parent in $(echo "$extends_val" | tr ',' '\n' | tr -d ' ' | grep .); do
             _resolve_bundle "$parent" "${visiting[@]}" || return 1
         done
     fi
@@ -240,6 +260,7 @@ _resolve_bundle() {
 }
 
 skill-ls-bundles() {
+    eval "$_SKILL_SHELL_COMPAT"
     local filter="${1:-}"
     _load_bundles || return 1
 
@@ -273,6 +294,7 @@ skill-ls-bundles() {
 }
 
 skill-bundle-add() {
+    eval "$_SKILL_SHELL_COMPAT"
     local bundle="${1:-}"
     if [ -z "$bundle" ]; then
         echo "Usage: skill-bundle-add <bundle>"
@@ -289,6 +311,7 @@ skill-bundle-add() {
 }
 
 skill-bundle-remove() {
+    eval "$_SKILL_SHELL_COMPAT"
     local bundle="${1:-}"
     if [ -z "$bundle" ]; then
         echo "Usage: skill-bundle-remove <bundle>"
@@ -305,6 +328,7 @@ skill-bundle-remove() {
 }
 
 skill-ls-installed() {
+    eval "$_SKILL_SHELL_COMPAT"
     local count=0
     local skills_dir
     for skills_dir in $(_skill_target_dirs); do
@@ -334,6 +358,7 @@ skill-ls-installed() {
 }
 
 skill-update() {
+    eval "$_SKILL_SHELL_COMPAT"
     echo "Updating agent-skills..."
     (cd "$AGENT_SKILLS" && git pull && git submodule update --remote)
 }
