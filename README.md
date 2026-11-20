@@ -3,8 +3,8 @@
 ---
 ### What is it? Watch the explainer below.
 
-<video src="https://github.com/user-attachments/assets/f5441168-77af-443e-ba3e-2a95e8563936" width="100%" controls></video>
-This fun little explainer video was made by the `explainer-animation` skill, using Claude Opus 5.5.
+<video src="https://github.com/user-attachments/assets/a28e7a47-c4fc-46b4-989c-8c92f2be0841" width="100%" controls></video>
+This fun little explainer video was made by the `explainer-animation` skill, using Claude Fable 5.2.
 
 This repository contains reusable agent skills, along with a small management layer that maintains them in a single source and distributes them across projects via symlinks (macOS/Linux) or junctions (Windows).
 
