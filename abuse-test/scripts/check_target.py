@@ -28,7 +28,11 @@ LOCAL, PRIVATE, REFUSE = 0, 10, 20
 BASE_URL = re.compile(
     r"^(?:https?|wss?)://(\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9.-]+)(?::(\d{1,5}))?/?$")
 PROD_NAME = re.compile(r"(^|[.-])(prod|production|live)([.-]|$)|^www\.", re.I)
-BRIDGE_IFACES = ("docker", "br-", "veth", "virbr", "podman", "cni", "lxc")
+# Container/VM bridges only: docker0, Docker user networks (br-<12 hex>),
+# podman, libvirt and LXC defaults. A generic "br-lan"/"br0" bridging a
+# physical NIC must NOT count, or the whole LAN would classify as local.
+BRIDGE_IFACE = re.compile(r"^(docker\d+|br-[0-9a-f]{12}|podman\d+|cni-podman\d+|virbr\d+|lxcbr\d+)$")
+DEFAULT_PORTS = {"http": 80, "ws": 80, "https": 443, "wss": 443}
 CGNAT = ipaddress.ip_network("100.64.0.0/10")
 
 
@@ -44,8 +48,11 @@ def bridge_networks():
     nets = []
     for line in out.splitlines():
         parts = line.split()
-        if len(parts) >= 4 and parts[1].startswith(BRIDGE_IFACES) and parts[2] in ("inet", "inet6"):
-            nets.append(ipaddress.ip_interface(parts[3]).network)
+        if len(parts) >= 4 and BRIDGE_IFACE.match(parts[1].split("@")[0]) \
+                and parts[2] in ("inet", "inet6"):
+            net = ipaddress.ip_interface(parts[3]).network
+            if not net.is_link_local:  # fe80::/10 exists on every link, including the LAN
+                nets.append(net)
     return nets
 
 
@@ -65,21 +72,43 @@ def resolve(host):
     return sorted({ai[4][0].split("%")[0] for ai in socket.getaddrinfo(host, None)})
 
 
+def norm_ip(text):
+    ip = ipaddress.ip_address(text)
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+        ip = ip.ipv4_mapped
+    return ip
+
+
+def parse_deny(entry):
+    """HOST, HOST:PORT, [V6], [V6]:PORT or a bare IPv6 address -> (host, port|None)."""
+    entry = entry.strip()
+    m = re.match(r"^\[([0-9A-Fa-f:.]+)\](?::(\d{1,5}))?$", entry)
+    if m:
+        return m.group(1), int(m.group(2)) if m.group(2) else None
+    if entry.count(":") > 1:  # unbracketed IPv6: no port
+        return entry, None
+    m = re.match(r"^([A-Za-z0-9.-]+)(?::(\d{1,5}))?$", entry)
+    if m:
+        return m.group(1), int(m.group(2)) if m.group(2) else None
+    raise ValueError(f"bad --deny entry: {entry!r}")
+
+
 def denied(host, port, ips, deny):
+    """port is the effective (int) port of the target."""
+    target_ips = {norm_ip(i) for i in ips}
     for entry in deny:
-        m = re.match(r"^\[?([^\]]+?)\]?(?::(\d+))?$", entry.strip())
-        if not m:
+        d_host, d_port = parse_deny(entry)
+        if d_port is not None and d_port != port:
             continue
-        d_host, d_port = m.group(1), m.group(2)
-        if d_port and d_port != (port or ""):
-            continue
-        if d_host.lower() == host.lower():
+        if d_host.lower().rstrip(".") == host.lower().rstrip("."):
             return True
         try:
-            if set(resolve(d_host)) & set(ips):
+            if {norm_ip(i) for i in resolve(d_host)} & target_ips:
                 return True
         except socket.gaierror:
-            pass
+            # Unresolvable deny entry: be safe if it names this host at all.
+            if d_host.lower() in host.lower():
+                return True
     return False
 
 
@@ -87,16 +116,22 @@ def classify(url, bridges=None, deny=()):
     m = BASE_URL.match(url)
     if not m:
         return REFUSE, f"refuse {url} (not a bare base URL: scheme://host[:port] only)"
-    host, port = m.group(1).strip("[]"), m.group(2)
-    if port and not 0 < int(port) < 65536:
-        return REFUSE, f"refuse {url} (bad port)"
+    scheme = url.split("://", 1)[0].lower()
+    host, port_text = m.group(1).strip("[]"), m.group(2)
+    port = int(port_text) if port_text else DEFAULT_PORTS[scheme]
+    if not 0 < port < 65536 or (port_text and port_text != str(port)):
+        return REFUSE, f"refuse {url} (bad port: no leading zeros, 1-65535)"
     if PROD_NAME.search(host):
         return REFUSE, f"refuse {host} (looks like production)"
     try:
         ips = resolve(host)
     except socket.gaierror:
         return REFUSE, f"refuse {host} (unresolvable)"
-    if denied(host, port, ips, deny):
+    try:
+        is_denied = denied(host, port, ips, deny)
+    except ValueError as e:
+        return REFUSE, f"refuse {host} ({e})"
+    if is_denied:
         return REFUSE, f"refuse {host} (on the deny list: production or forbidden)"
     bridges = bridge_networks() if bridges is None else bridges
     worst = max(classify_ip(ipaddress.ip_address(i), bridges) for i in ips)
@@ -118,8 +153,12 @@ def self_test():
         ("http://prod-db.local", REFUSE), ("http://nonexistent.invalid", REFUSE),
         ("http://localhost:99999", REFUSE), ("", REFUSE),
     ]
-    deny = ["192.168.1.200:18080", "127.0.0.1:8920"]
+    deny = ["192.168.1.200:18080", "127.0.0.1:8920", "192.168.1.201:80", "fd00::5"]
     cases += [
+        ("http://127.0.0.1:08920", REFUSE), ("http://[::ffff:127.0.0.1]:8920", REFUSE),
+        ("http://[::ffff:192.168.1.200]:18080", REFUSE), ("http://192.168.1.201", REFUSE),
+        ("http://192.168.1.201:80", REFUSE), ("http://[fd00::5]:3000", REFUSE),
+        ("https://192.168.1.201", PRIVATE),
         ("http://192.168.1.200:18080", REFUSE), ("http://192.168.1.200:9999", PRIVATE),
         ("http://127.0.0.1:8920", REFUSE), ("http://localhost:8920", REFUSE),
         ("http://127.0.0.1:18765", LOCAL),
